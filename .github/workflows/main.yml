@@ -1,0 +1,29 @@
+name: Build AdGuardHome
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container: openwrtorg/sdk:armvirt-64  # 改用官方可用镜像
+
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 下载插件
+        run: |
+          git clone https://github.com/sirpdboy/luci-app-adguardhome.git package/luci-app-adguardhome
+
+      - name: 开始编译
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install libuci libubus
+          echo "CONFIG_PACKAGE_luci-app-adguardhome=y" >> .config
+          make defconfig
+          make package/luci-app-adguardhome/compile V=s
+
+      - name: 上传IPK文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: adguardhome-ipk
+          path: bin/packages/aarch64_generic/luci/*.ipk
